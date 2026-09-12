@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Viewport update to prevent unwanted zooming on mobile -->
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Dynamic Premium Chat UI</title>
     <style>
         /* Base Reset */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
-        body { background-color: #f4f7f9; height: 100vh; }
+        body { background-color: #f4f7f9; height: 100vh; overflow: hidden; } /* Prevents background scrolling when chat is open on mobile */
 
         /* Floating Toggle Button */
         #chat-trigger {
@@ -20,7 +21,7 @@
         #chat-trigger:hover { transform: scale(1.05); }
         #chat-trigger svg { width: 30px; height: 30px; fill: white; }
 
-        /* Main Chat Widget Container */
+        /* Main Chat Widget Container (Desktop Default) */
         #chat-widget {
             position: fixed; bottom: 110px; right: 30px; width: 380px; height: 600px;
             background: white; border-radius: 20px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
@@ -31,7 +32,7 @@
         /* Header */
         .chat-header {
             background: linear-gradient(135deg, #9b51e0, #2d76f9); padding: 20px; color: white;
-            display: flex; align-items: center; justify-content: space-between;
+            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
         }
         .header-profile { display: flex; align-items: center; gap: 12px; }
         .avatar {
@@ -40,7 +41,7 @@
         }
         .header-info h3 { font-size: 16px; margin-bottom: 2px; }
         .header-info p { font-size: 12px; opacity: 0.8; }
-        .header-actions { font-size: 20px; cursor: pointer; display: flex; gap: 10px; }
+        .header-actions { font-size: 24px; cursor: pointer; display: flex; gap: 10px; line-height: 1;}
 
         /* Chat History Area */
         .chat-body {
@@ -58,26 +59,20 @@
         .msg-bot {
             background: #f4f6f8; color: #333; padding: 12px 16px;
             border-radius: 15px 15px 15px 5px; font-size: 14px; max-width: 85%; line-height: 1.4;
-            min-height: 44px;
+            min-height: 44px; word-wrap: break-word;
         }
         .msg-user {
             background: linear-gradient(135deg, #9b51e0, #2d76f9); color: white; padding: 12px 16px;
             border-radius: 15px 15px 0px 15px; font-size: 14px; max-width: 85%; align-self: flex-end; line-height: 1.4;
+            word-wrap: break-word;
         }
 
-        /* --- NEW: Animated Typing Indicator CSS --- */
+        /* Animated Typing Indicator CSS */
         .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            height: 20px;
-            padding: 0 5px;
+            display: flex; align-items: center; gap: 4px; height: 20px; padding: 0 5px;
         }
         .typing-dot {
-            width: 6px;
-            height: 6px;
-            background-color: #888;
-            border-radius: 50%;
+            width: 6px; height: 6px; background-color: #888; border-radius: 50%;
             animation: bounce 1.4s infinite ease-in-out both;
         }
         .typing-dot:nth-child(1) { animation-delay: -0.32s; }
@@ -90,18 +85,47 @@
 
         /* Input Footer */
         .chat-footer {
-            padding: 15px 20px; border-top: 1px solid #eee; display: flex; align-items: center; gap: 15px; background: white;
+            padding: 15px 20px; border-top: 1px solid #eee; display: flex; align-items: center; gap: 10px; background: white; flex-shrink: 0;
         }
-        .chat-input { flex: 1; border: none; outline: none; font-size: 14px; padding: 5px 0; }
+        .chat-input { flex: 1; border: none; outline: none; font-size: 14px; padding: 5px 0; background: transparent; }
         .footer-icons { display: flex; align-items: center; gap: 12px; color: #999; }
-        .footer-icons svg { width: 20px; height: 20px; cursor: pointer; fill: currentColor; transition: color 0.2s; }
+        .footer-icons svg { width: 22px; height: 22px; cursor: pointer; fill: currentColor; transition: color 0.2s; }
         .footer-icons svg:hover { color: #2d76f9; }
-        .send-btn { background: none; border: none; color: #ccc; cursor: pointer; }
+        .send-btn { background: none; border: none; color: #ccc; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .send-btn.active { color: #2d76f9; }
 
         /* Scrollbar */
         .chat-body::-webkit-scrollbar { width: 6px; }
         .chat-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+
+        /* ========================================================
+           NEW: MOBILE RESPONSIVENESS (Media Query) 
+           ======================================================== */
+        @media screen and (max-width: 768px) {
+            #chat-widget {
+                width: 100%;
+                height: 100%;
+                height: 100dvh; /* For modern mobile browsers to handle URL bar changes */
+                bottom: 0;
+                right: 0;
+                border-radius: 0;
+            }
+            #chat-trigger {
+                bottom: 20px;
+                right: 20px;
+                width: 55px;
+                height: 55px;
+            }
+            .chat-input {
+                font-size: 16px; /* 16px prevents automatic zooming in on iPhones when typing */
+            }
+            .chat-body {
+                padding: 15px; /* Thinner padding for smaller screens */
+            }
+            .chat-header {
+                padding: 15px; 
+            }
+        }
     </style>
 </head>
 <body>
@@ -122,12 +146,13 @@
                     <p>You can ask me anything</p>
                 </div>
             </div>
+            <!-- Replaced dash with a clear "✕" cross for mobile friendliness -->
             <div class="header-actions">
-                <span onclick="toggleChat()">—</span>
+                <span onclick="toggleChat()">✕</span>
             </div>
         </div>
 
-        <!-- Chat Body: STRICTLY EMPTY IN HTML -->
+        <!-- Chat Body -->
         <div class="chat-body" id="chat-history"></div>
 
         <!-- Footer -->
@@ -149,13 +174,17 @@
         // --- 1. Core UI Toggles ---
         function toggleChat() {
             const widget = document.getElementById('chat-widget');
+            const trigger = document.getElementById('chat-trigger');
+            
             widget.classList.toggle('active');
 
             if (widget.classList.contains('active')) {
+                trigger.style.display = 'none'; // Hide trigger button when chat is open
                 if (greetInterval) clearInterval(greetInterval); 
                 chatHistory.innerHTML = ""; 
                 streamBotText("Hi! How can I help you today?");
             } else {
+                trigger.style.display = 'flex'; // Show trigger button when chat is closed
                 if (greetInterval) clearInterval(greetInterval);
             }
         }
@@ -232,10 +261,10 @@
             appendUserMessage(text);
             input.value = '';
             checkInput();
+            input.blur(); // Closes keyboard on mobile after sending
 
             const typingId = "typing-" + Date.now();
             
-            // --- NEW: Animated Loader HTML ---
             const indicatorHTML = `
                 <div class="message-row" id="${typingId}">
                     <div class="bot-avatar">V</div>
