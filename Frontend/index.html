@@ -58,32 +58,35 @@
         .msg-bot {
             background: #f4f6f8; color: #333; padding: 12px 16px;
             border-radius: 15px 15px 15px 5px; font-size: 14px; max-width: 85%; line-height: 1.4;
-            min-height: 44px; /* Taki khali div ajeeb na dikhe */
+            min-height: 44px;
         }
         .msg-user {
             background: linear-gradient(135deg, #9b51e0, #2d76f9); color: white; padding: 12px 16px;
             border-radius: 15px 15px 0px 15px; font-size: 14px; max-width: 85%; align-self: flex-end; line-height: 1.4;
         }
 
-        /* Dynamic Elements: Pills & Lists */
-        .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: 38px; }
-        .pill {
-            background: white; border: 1px solid #7c88ea; color: #5c6bea; padding: 6px 14px;
-            border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s;
+        /* --- NEW: Animated Typing Indicator CSS --- */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            height: 20px;
+            padding: 0 5px;
         }
-        .pill:hover { background: #f4f6ff; }
-
-        .list-card {
-            background: white; border: 1px solid #eee; border-radius: 10px; width: 100%;
-            margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); overflow: hidden;
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background-color: #888;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
         }
-        .list-item {
-            padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333;
-            display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
         }
-        .list-item:last-child { border-bottom: none; }
-        .list-item:hover { background-color: #f9f9f9; }
-        .list-arrow { color: #ccc; font-weight: bold; }
 
         /* Input Footer */
         .chat-footer {
@@ -141,7 +144,7 @@
     <!-- Dynamic JavaScript Engine -->
     <script>
         const chatHistory = document.getElementById('chat-history');
-        let greetInterval = null; // Typing animation track karne ke liye variable
+        let greetInterval = null; 
 
         // --- 1. Core UI Toggles ---
         function toggleChat() {
@@ -149,11 +152,10 @@
             widget.classList.toggle('active');
 
             if (widget.classList.contains('active')) {
-                if (greetInterval) clearInterval(greetInterval); // Purana interval clear karein
-                chatHistory.innerHTML = ""; // Pichli chat clear (interval clear hone ke baad)
+                if (greetInterval) clearInterval(greetInterval); 
+                chatHistory.innerHTML = ""; 
                 streamBotText("Hi! How can I help you today?");
             } else {
-                // Popup band hote waqt bhi running interval clear kar dein
                 if (greetInterval) clearInterval(greetInterval);
             }
         }
@@ -171,7 +173,6 @@
             scrollToBottom();
         }
 
-        // Streaming (type-by-type) effect ke saath bot ka msg dikhana
         function streamBotText(text, speed = 30) {
             const msgId = "greet-" + Date.now();
 
@@ -188,7 +189,6 @@
             let i = 0;
 
             greetInterval = setInterval(() => {
-                // Safety check: agar element DOM se hat chuka hai (popup close/reopen hua) to interval rok dein
                 if (!msgElement || !document.body.contains(msgElement)) {
                     clearInterval(greetInterval);
                     return;
@@ -234,7 +234,20 @@
             checkInput();
 
             const typingId = "typing-" + Date.now();
-            const indicatorHTML = `<div class="message-row" id="${typingId}"><div class="bot-avatar">V</div><div class="msg-bot">...</div></div>`;
+            
+            // --- NEW: Animated Loader HTML ---
+            const indicatorHTML = `
+                <div class="message-row" id="${typingId}">
+                    <div class="bot-avatar">V</div>
+                    <div class="msg-bot" style="display:flex; align-items:center;">
+                        <div class="typing-indicator">
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                            <div class="typing-dot"></div>
+                        </div>
+                    </div>
+                </div>`;
+                
             chatHistory.insertAdjacentHTML('beforeend', indicatorHTML);
             scrollToBottom();
 
