@@ -239,7 +239,7 @@
             scrollToBottom();
 
             try {
-                const response = await fetch('https://smartchatbot-tdi7.onrender.com/api/chat/stream', {
+                const response = await fetch('https://smartchatbot-webapi.onrender.com/api/chat/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: text })
