@@ -1,5 +1,5 @@
-# Use the official .NET 8 SDK image to build the app
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+# Use the official .NET 10 SDK image to build the app
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /app
 
 # Copy csproj and restore dependencies
@@ -11,7 +11,7 @@ COPY Backend/WebApplication4/ ./Backend/WebApplication4/
 RUN dotnet publish ./Backend/WebApplication4/WebApplication4.csproj -c Release -o out
 
 # Build runtime image
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
 COPY --from=build /app/out .
 
