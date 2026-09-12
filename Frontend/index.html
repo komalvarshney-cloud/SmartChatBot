@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dynamic Premium Chat UI</title>
+    <style>
+        /* Base Reset */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif; }
+        body { background-color: #f4f7f9; height: 100vh; }
+
+        /* Floating Toggle Button */
+        #chat-trigger {
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            background: linear-gradient(135deg, #9b51e0, #2d76f9);
+            border-radius: 50%; border: none; box-shadow: 0 10px 25px rgba(45, 118, 249, 0.4);
+            cursor: pointer; z-index: 1000; display: flex; align-items: center; justify-content: center;
+            transition: transform 0.3s ease;
+        }
+        #chat-trigger:hover { transform: scale(1.05); }
+        #chat-trigger svg { width: 30px; height: 30px; fill: white; }
+
+        /* Main Chat Widget Container */
+        #chat-widget {
+            position: fixed; bottom: 110px; right: 30px; width: 380px; height: 600px;
+            background: white; border-radius: 20px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.1);
+            display: none; flex-direction: column; overflow: hidden; z-index: 999;
+        }
+        #chat-widget.active { display: flex; }
+
+        /* Header */
+        .chat-header {
+            background: linear-gradient(135deg, #9b51e0, #2d76f9); padding: 20px; color: white;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .header-profile { display: flex; align-items: center; gap: 12px; }
+        .avatar {
+            width: 45px; height: 45px; background: white; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-weight: bold; color: #9b51e0;
+        }
+        .header-info h3 { font-size: 16px; margin-bottom: 2px; }
+        .header-info p { font-size: 12px; opacity: 0.8; }
+        .header-actions { font-size: 20px; cursor: pointer; display: flex; gap: 10px; }
+
+        /* Chat History Area */
+        .chat-body {
+            flex: 1; padding: 20px; overflow-y: auto; background-color: #ffffff;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        /* Message Styles */
+        .message-row { display: flex; gap: 10px; align-items: flex-end; }
+        .bot-avatar {
+            width: 28px; height: 28px; background: linear-gradient(135deg, #9b51e0, #2d76f9);
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            color: white; font-size: 12px; font-weight: bold; flex-shrink: 0;
+        }
+        .msg-bot {
+            background: #f4f6f8; color: #333; padding: 12px 16px;
+            border-radius: 15px 15px 15px 5px; font-size: 14px; max-width: 85%; line-height: 1.4;
+        }
+        .msg-user {
+            background: linear-gradient(135deg, #9b51e0, #2d76f9); color: white; padding: 12px 16px;
+            border-radius: 15px 15px 0px 15px; font-size: 14px; max-width: 85%; align-self: flex-end; line-height: 1.4;
+        }
+
+        /* Dynamic Elements: Pills & Lists */
+        .suggestions { display: flex; flex-wrap: wrap; gap: 8px; margin-left: 38px; }
+        .pill {
+            background: white; border: 1px solid #7c88ea; color: #5c6bea; padding: 6px 14px;
+            border-radius: 20px; font-size: 13px; cursor: pointer; transition: all 0.2s;
+        }
+        .pill:hover { background: #f4f6ff; }
+
+        .list-card {
+            background: white; border: 1px solid #eee; border-radius: 10px; width: 100%;
+            margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); overflow: hidden;
+        }
+        .list-item {
+            padding: 15px; border-bottom: 1px solid #eee; font-size: 14px; color: #333;
+            display: flex; justify-content: space-between; cursor: pointer; transition: background 0.2s;
+        }
+        .list-item:last-child { border-bottom: none; }
+        .list-item:hover { background-color: #f9f9f9; }
+        .list-arrow { color: #ccc; font-weight: bold; }
+
+        /* Input Footer */
+        .chat-footer {
+            padding: 15px 20px; border-top: 1px solid #eee; display: flex; align-items: center; gap: 15px; background: white;
+        }
+        .chat-input { flex: 1; border: none; outline: none; font-size: 14px; padding: 5px 0; }
+        .footer-icons { display: flex; align-items: center; gap: 12px; color: #999; }
+        .footer-icons svg { width: 20px; height: 20px; cursor: pointer; fill: currentColor; transition: color 0.2s; }
+        .footer-icons svg:hover { color: #2d76f9; }
+        .send-btn { background: none; border: none; color: #ccc; cursor: pointer; }
+        .send-btn.active { color: #2d76f9; }
+
+        /* Scrollbar */
+        .chat-body::-webkit-scrollbar { width: 6px; }
+        .chat-body::-webkit-scrollbar-thumb { background: #ddd; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Toggle Button -->
+    <button id="chat-trigger" onclick="toggleChat()">
+        <svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+    </button>
+
+    <!-- Main Chat Widget -->
+    <div id="chat-widget">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="header-profile">
+                <div class="avatar">C</div>
+                <div class="header-info">
+                    <h3>Chat Assistance</h3>
+                    <p>You can ask me anything</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <span onclick="toggleChat()">—</span>
+            </div>
+        </div>
+
+        <!-- Chat Body: STRICTLY EMPTY IN HTML -->
+        <div class="chat-body" id="chat-history"></div>
+
+        <!-- Footer -->
+        <div class="chat-footer">
+            <input type="text" class="chat-input" id="message-input" placeholder="Type your message..." oninput="checkInput()">
+            <div class="footer-icons">
+                <button class="send-btn" id="send-btn" onclick="processUserInput()">
+                    <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dynamic JavaScript Engine -->
+    <script>
+        const chatHistory = document.getElementById('chat-history');
+
+        // --- 1. Core UI Toggles ---
+        function toggleChat() {
+            const widget = document.getElementById('chat-widget');
+            widget.classList.toggle('active');
+
+            // Agar chat open ho rahi hai, toh har baar chat reset karke greeting dega
+            if (widget.classList.contains('active')) {
+                chatHistory.innerHTML = ""; // Pichli chat clear ho jayegi
+                appendBotText("Hi! How can I help you today?");
+            }
+        }
+
+        function checkInput() {
+            const input = document.getElementById('message-input');
+            const btn = document.getElementById('send-btn');
+            input.value.trim().length > 0 ? btn.classList.add('active') : btn.classList.remove('active');
+        }
+
+        // --- 2. Dynamic Rendering Functions ---
+        function appendUserMessage(text) {
+            chatHistory.innerHTML += `<div class="msg-user">${text}</div>`;
+            scrollToBottom();
+        }
+
+        function appendBotText(text) {
+            chatHistory.innerHTML += `
+                <div class="message-row">
+                    <div class="bot-avatar">V</div>
+                    <div class="msg-bot">${text}</div>
+                </div>`;
+            scrollToBottom();
+        }
+
+        function appendSuggestions(suggestionsArray) {
+            let pillsHTML = suggestionsArray.map(text => 
+                `<div class="pill" onclick="handleDynamicClick('${text}')">${text}</div>`
+            ).join('');
+            
+            chatHistory.innerHTML += `<div class="suggestions">${pillsHTML}</div>`;
+            scrollToBottom();
+        }
+
+        function appendListCard(title, itemsArray) {
+            let itemsHTML = itemsArray.map(item => 
+                `<div class="list-item" onclick="handleDynamicClick('${item}')">
+                    <span>${item}</span><span class="list-arrow">></span>
+                </div>`
+            ).join('');
+
+            chatHistory.innerHTML += `
+                <div class="message-row">
+                    <div class="bot-avatar">V</div>
+                    <div style="display: flex; flex-direction: column; width: 100%;">
+                        <div class="msg-bot">${title}</div>
+                        <div class="list-card">${itemsHTML}</div>
+                    </div>
+                </div>`;
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        // --- 3. Interaction Handlers ---
+        function handleDynamicClick(text) {
+            document.getElementById('message-input').value = text;
+            processUserInput();
+        }
+
+        document.getElementById('message-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') processUserInput();
+        });
+
+        // --- 4. Main Processing & Backend API Call ---
+        async function processUserInput() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            // 1. Show user message and clear input
+            appendUserMessage(text);
+            input.value = '';
+            checkInput();
+
+            // 2. Show typing indicator
+            const typingId = "typing-" + Date.now();
+            chatHistory.innerHTML += `<div class="message-row" id="${typingId}"><div class="bot-avatar">V</div><div class="msg-bot">...</div></div>`;
+            scrollToBottom();
+
+            try {
+                // 3. Asli backend API call — apna port yahan daalein
+                const response = await fetch('https://localhost:7021/api/chat/stream', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: text })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                // Typing indicator hatao, ab yahin bot message banayenge jo update hota rahega
+                document.getElementById(typingId).remove();
+
+                const botMsgId = "bot-msg-" + Date.now();
+                chatHistory.innerHTML += `
+                    <div class="message-row">
+                        <div class="bot-avatar">V</div>
+                        <div class="msg-bot" id="${botMsgId}"></div>
+                    </div>`;
+                scrollToBottom();
+
+                const botMsgElement = document.getElementById(botMsgId);
+
+                // 4. Stream ko chunk-by-chunk padhna (Server-Sent text/event-stream)
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder('utf-8');
+                let fullText = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value, { stream: true });
+                    fullText += chunk;
+                    botMsgElement.textContent = fullText; // Real-time update, jaise ChatGPT typing effect
+                    scrollToBottom();
+                }
+
+            } catch (error) {
+                console.error('Chat API error:', error);
+                const typingEl = document.getElementById(typingId);
+                if (typingEl) typingEl.remove();
+
+                appendBotText("Oops! Something went wrong. Let's try that again.");
+            }
+        }
+    </script>
+</body>
+</html>

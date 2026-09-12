@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	  <UserSecretsId>a7185a67-a29b-4122-83de-e03476a9d3c2</UserSecretsId>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0" />
+		<PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.0" />
+		<PackageReference Include="Pgvector" Version="0.3.0" />
+		<PackageReference Include="Pgvector.EntityFrameworkCore" Version="0.2.0" />
+		<PackageReference Include="Microsoft.Extensions.AI" Version="10.3.0" />
+		<PackageReference Include="Microsoft.Extensions.AI.OpenAI" Version="10.3.0" />
+		<PackageReference Include="OpenAI" Version="2.12.0" />
+		<PackageReference Include="UglyToad.PdfPig" Version="1.7.0-custom-5" />
+	</ItemGroup>
+
+</Project>
