@@ -124,7 +124,7 @@ public class ChatController : ControllerBase
             // ---- 3. NO CONTEXT CASE ----
             if (matches.Count == 0)
             {
-                var noContextMsg = "Maaf kijiye, is sawaal ka jawab mere paas available documents mein nahi hai.";
+                var noContextMsg = "I apologize, but I don't have the answer to this question in my available documents.";
                 await Response.Body.WriteAsync(Encoding.UTF8.GetBytes(noContextMsg), cancellationToken);
                 await Response.Body.FlushAsync(cancellationToken);
                 return;

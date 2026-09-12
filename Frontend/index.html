@@ -58,6 +58,7 @@
         .msg-bot {
             background: #f4f6f8; color: #333; padding: 12px 16px;
             border-radius: 15px 15px 15px 5px; font-size: 14px; max-width: 85%; line-height: 1.4;
+            min-height: 44px; /* Taki khali div ajeeb na dikhe */
         }
         .msg-user {
             background: linear-gradient(135deg, #9b51e0, #2d76f9); color: white; padding: 12px 16px;
@@ -140,16 +141,20 @@
     <!-- Dynamic JavaScript Engine -->
     <script>
         const chatHistory = document.getElementById('chat-history');
+        let greetInterval = null; // Typing animation track karne ke liye variable
 
         // --- 1. Core UI Toggles ---
         function toggleChat() {
             const widget = document.getElementById('chat-widget');
             widget.classList.toggle('active');
 
-            // Agar chat open ho rahi hai, toh har baar chat reset karke greeting dega
             if (widget.classList.contains('active')) {
-                chatHistory.innerHTML = ""; // Pichli chat clear ho jayegi
-                appendBotText("Hi! How can I help you today?");
+                if (greetInterval) clearInterval(greetInterval); // Purana interval clear karein
+                chatHistory.innerHTML = ""; // Pichli chat clear (interval clear hone ke baad)
+                streamBotText("Hi! How can I help you today?");
+            } else {
+                // Popup band hote waqt bhi running interval clear kar dein
+                if (greetInterval) clearInterval(greetInterval);
             }
         }
 
@@ -161,43 +166,51 @@
 
         // --- 2. Dynamic Rendering Functions ---
         function appendUserMessage(text) {
-            chatHistory.innerHTML += `<div class="msg-user">${text}</div>`;
+            const msgHTML = `<div class="msg-user">${text}</div>`;
+            chatHistory.insertAdjacentHTML('beforeend', msgHTML);
             scrollToBottom();
         }
 
+        // Streaming (type-by-type) effect ke saath bot ka msg dikhana
+        function streamBotText(text, speed = 30) {
+            const msgId = "greet-" + Date.now();
+
+            const typingHTML = `
+                <div class="message-row">
+                    <div class="bot-avatar">V</div>
+                    <div class="msg-bot" id="${msgId}"></div>
+                </div>`;
+
+            chatHistory.insertAdjacentHTML('beforeend', typingHTML);
+            scrollToBottom();
+
+            const msgElement = document.getElementById(msgId);
+            let i = 0;
+
+            greetInterval = setInterval(() => {
+                // Safety check: agar element DOM se hat chuka hai (popup close/reopen hua) to interval rok dein
+                if (!msgElement || !document.body.contains(msgElement)) {
+                    clearInterval(greetInterval);
+                    return;
+                }
+
+                if (i < text.length) {
+                    msgElement.textContent += text.charAt(i);
+                    scrollToBottom();
+                    i++;
+                } else {
+                    clearInterval(greetInterval);
+                }
+            }, speed);
+        }
+
         function appendBotText(text) {
-            chatHistory.innerHTML += `
+            const botHTML = `
                 <div class="message-row">
                     <div class="bot-avatar">V</div>
                     <div class="msg-bot">${text}</div>
                 </div>`;
-            scrollToBottom();
-        }
-
-        function appendSuggestions(suggestionsArray) {
-            let pillsHTML = suggestionsArray.map(text => 
-                `<div class="pill" onclick="handleDynamicClick('${text}')">${text}</div>`
-            ).join('');
-            
-            chatHistory.innerHTML += `<div class="suggestions">${pillsHTML}</div>`;
-            scrollToBottom();
-        }
-
-        function appendListCard(title, itemsArray) {
-            let itemsHTML = itemsArray.map(item => 
-                `<div class="list-item" onclick="handleDynamicClick('${item}')">
-                    <span>${item}</span><span class="list-arrow">></span>
-                </div>`
-            ).join('');
-
-            chatHistory.innerHTML += `
-                <div class="message-row">
-                    <div class="bot-avatar">V</div>
-                    <div style="display: flex; flex-direction: column; width: 100%;">
-                        <div class="msg-bot">${title}</div>
-                        <div class="list-card">${itemsHTML}</div>
-                    </div>
-                </div>`;
+            chatHistory.insertAdjacentHTML('beforeend', botHTML);
             scrollToBottom();
         }
 
@@ -206,11 +219,6 @@
         }
 
         // --- 3. Interaction Handlers ---
-        function handleDynamicClick(text) {
-            document.getElementById('message-input').value = text;
-            processUserInput();
-        }
-
         document.getElementById('message-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') processUserInput();
         });
@@ -221,18 +229,16 @@
             const text = input.value.trim();
             if (!text) return;
 
-            // 1. Show user message and clear input
             appendUserMessage(text);
             input.value = '';
             checkInput();
 
-            // 2. Show typing indicator
             const typingId = "typing-" + Date.now();
-            chatHistory.innerHTML += `<div class="message-row" id="${typingId}"><div class="bot-avatar">V</div><div class="msg-bot">...</div></div>`;
+            const indicatorHTML = `<div class="message-row" id="${typingId}"><div class="bot-avatar">V</div><div class="msg-bot">...</div></div>`;
+            chatHistory.insertAdjacentHTML('beforeend', indicatorHTML);
             scrollToBottom();
 
             try {
-                // 3. Asli backend API call — apna port yahan daalein
                 const response = await fetch('https://localhost:7021/api/chat/stream', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -243,20 +249,18 @@
                     throw new Error(`Server error: ${response.status}`);
                 }
 
-                // Typing indicator hatao, ab yahin bot message banayenge jo update hota rahega
                 document.getElementById(typingId).remove();
 
                 const botMsgId = "bot-msg-" + Date.now();
-                chatHistory.innerHTML += `
+                const containerHTML = `
                     <div class="message-row">
                         <div class="bot-avatar">V</div>
                         <div class="msg-bot" id="${botMsgId}"></div>
                     </div>`;
+                chatHistory.insertAdjacentHTML('beforeend', containerHTML);
                 scrollToBottom();
 
                 const botMsgElement = document.getElementById(botMsgId);
-
-                // 4. Stream ko chunk-by-chunk padhna (Server-Sent text/event-stream)
                 const reader = response.body.getReader();
                 const decoder = new TextDecoder('utf-8');
                 let fullText = '';
@@ -267,7 +271,7 @@
 
                     const chunk = decoder.decode(value, { stream: true });
                     fullText += chunk;
-                    botMsgElement.textContent = fullText; // Real-time update, jaise ChatGPT typing effect
+                    botMsgElement.textContent = fullText;
                     scrollToBottom();
                 }
 
